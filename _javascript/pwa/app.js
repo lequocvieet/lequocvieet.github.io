@@ -1,38 +1,29 @@
-import Toast from 'bootstrap/js/src/toast';
-
 if ('serviceWorker' in navigator) {
   // Get Jekyll config from URL parameters
   const src = new URL(document.currentScript.src);
-  const register = src.searchParams.get('register');
+  // Jekyll may pass register=false; only the string "true" should enable SW.
+  const register = src.searchParams.get('register') === 'true';
   const baseUrl = src.searchParams.get('baseurl');
 
   if (register) {
     const swUrl = `${baseUrl}/sw.min.js`;
-    const notification = document.getElementById('notification');
-    const btnRefresh = notification.querySelector('.toast-body>button');
-    const popupWindow = Toast.getOrCreateInstance(notification);
+
+    const activateWaiting = (registration) => {
+      if (registration.waiting) {
+        registration.waiting.postMessage('SKIP_WAITING');
+      }
+    };
 
     navigator.serviceWorker.register(swUrl).then((registration) => {
-      // Restore the update window that was last manually closed by the user
-      if (registration.waiting) {
-        popupWindow.show();
-      }
+      // Auto-apply waiting worker instead of showing an Update toast
+      activateWaiting(registration);
 
       registration.addEventListener('updatefound', () => {
         registration.installing.addEventListener('statechange', () => {
-          if (registration.waiting) {
-            if (navigator.serviceWorker.controller) {
-              popupWindow.show();
-            }
+          if (registration.waiting && navigator.serviceWorker.controller) {
+            activateWaiting(registration);
           }
         });
-      });
-
-      btnRefresh.addEventListener('click', () => {
-        if (registration.waiting) {
-          registration.waiting.postMessage('SKIP_WAITING');
-        }
-        popupWindow.hide();
       });
     });
 
