@@ -3,6 +3,10 @@ title: "Data race on latestBlock due to unsynchronized access"
 date: 2025-08-29 12:40:00 +0700
 categories: [Audits, Mezod]
 tags: [golang, data-race, concurrency, mezod, cantina]
+description: >-
+  Unsynchronized concurrent access to latestBlock in Mezo's EVM indexer
+  service — a confirmed Medium data-race finding.
+image: /assets/img/social-preview.jpg
 ---
 
 ## Metadata
