@@ -6,7 +6,7 @@ tags: [golang, data-race, concurrency, mezod, cantina]
 description: >-
   Unsynchronized concurrent access to latestBlock in Mezo's EVM indexer
   service — a confirmed Medium data-race finding.
-image: /assets/img/mezod.jpeg
+image: /assets/img/mezod.jpg
 ---
 
 ## Metadata
