@@ -26,6 +26,9 @@ function verifyUrl(url) {
 }
 
 self.addEventListener('install', (event) => {
+  // Take over immediately so an old cached worker cannot keep serving stale pages.
+  self.skipWaiting();
+
   if (purge) {
     return;
   }
@@ -39,19 +42,22 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keyList) => {
-      return Promise.all(
-        keyList.map((key) => {
-          if (purge) {
-            return caches.delete(key);
-          } else {
-            if (key !== swconf.cacheName) {
+    caches
+      .keys()
+      .then((keyList) => {
+        return Promise.all(
+          keyList.map((key) => {
+            if (purge) {
               return caches.delete(key);
+            } else {
+              if (key !== swconf.cacheName) {
+                return caches.delete(key);
+              }
             }
-          }
-        })
-      );
-    })
+          })
+        );
+      })
+      .then(() => self.clients.claim())
   );
 });
 
