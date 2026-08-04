@@ -1,22 +1,15 @@
 ---
 title: "Data race on latestBlock due to unsynchronized access"
-date: 2026-08-04 12:40:00 +0700
-categories: [Audits, Mezo]
+date: 2025-08-29 12:40:00 +0700
+categories: [Audits, Mezod]
 tags: [golang, data-race, concurrency, mezod, cantina]
 ---
 
-# Data race on latestBlock due to unsynchronized access
-
 ## Metadata
 
-- **Number:** #359
 - **Severity:** Medium
-- **Status:** Confirmed
 - **Likelihood:** High
 - **Impact:** Medium
-- **Created by:** uint256vieet
-- **Created at:** April 29, 2025 at 3:43 PM
-- **Last updated:** May 20, 2025 at 6:05 PM
 - **Reward:** 1086.10 $
 
 ## Description
