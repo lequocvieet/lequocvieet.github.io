@@ -116,116 +116,117 @@ The ***memory & disk*** usage grows unbounded over time as malicious proofs accu
 - **Full node** – pulls blocks from Bitcoin, verifies proofs (from batch prover) => where the attack occurs.
 
 ### Setup
+
 1. Bitcoin regtest
-- Start Bitcoin regtest and create a wallet:
-`docker compose -f docker/docker-compose.regtest.yml up`
-`bitcoin-cli -regtest -rpcuser=citrea -rpcpassword=citrea createwallet citreatesting`
-`bitcoin-cli -regtest -rpcuser=citrea -rpcpassword=citrea -generate 201`
-- Automate mine Bitcoin block:  
-    `./mine_blocks.sh 20 1`  (Here mine 1 block every 20s)
-    
-```bash
-#!/bin/bash
 
-# Script to mine Bitcoin blocks at regular intervals
-# Usage: ./mine_blocks.sh [interval_seconds] [num_blocks_per_interval]
+    - Start Bitcoin regtest and create a wallet:
+      `docker compose -f docker/docker-compose.regtest.yml up`
+      `bitcoin-cli -regtest -rpcuser=citrea -rpcpassword=citrea createwallet citreatesting`
+      `bitcoin-cli -regtest -rpcuser=citrea -rpcpassword=citrea -generate 201`
+    - Automate mine Bitcoin block: `./mine_blocks.sh 20 1` (Here mine 1 block every 20s)
 
-INTERVAL=${1:-600}  # Default 10 minutes (600 seconds)
-BLOCKS_PER_INTERVAL=${2:-1}  # Default 1 block per interval
+    ```bash
+    #!/bin/bash
 
-echo "Starting Bitcoin mining simulation..."
-echo "Interval: ${INTERVAL} seconds"
-echo "Blocks per interval: ${BLOCKS_PER_INTERVAL}"
-echo "Press Ctrl+C to stop"
+    # Script to mine Bitcoin blocks at regular intervals
+    # Usage: ./mine_blocks.sh [interval_seconds] [num_blocks_per_interval]
 
-while true; do
-    echo "$(date): Mining ${BLOCKS_PER_INTERVAL} block(s)..."
-    bitcoin-cli -regtest -rpcuser=citrea -rpcpassword=citrea -generate $BLOCKS_PER_INTERVAL
-    
-    echo "$(date): Waiting ${INTERVAL} seconds until next mining..."
-    sleep $INTERVAL
-done
-```
+    INTERVAL=${1:-600}  # Default 10 minutes (600 seconds)
+    BLOCKS_PER_INTERVAL=${2:-1}  # Default 1 block per interval
+
+    echo "Starting Bitcoin mining simulation..."
+    echo "Interval: ${INTERVAL} seconds"
+    echo "Blocks per interval: ${BLOCKS_PER_INTERVAL}"
+    echo "Press Ctrl+C to stop"
+
+    while true; do
+        echo "$(date): Mining ${BLOCKS_PER_INTERVAL} block(s)..."
+        bitcoin-cli -regtest -rpcuser=citrea -rpcpassword=citrea -generate $BLOCKS_PER_INTERVAL
+        
+        echo "$(date): Waiting ${INTERVAL} seconds until next mining..."
+        sleep $INTERVAL
+    done
+    ```
 
 2. Sequencer
-- Config
-    `max_l2_blocks_per_commitment = 10`
-- Start sequencer
-    `./target/debug/citrea --dev --da-layer bitcoin --rollup-config-path resources/configs/bitcoin-regtest/sequencer_rollup_config.toml --sequencer resources/configs/bitcoin-regtest/sequencer_config.toml --genesis-paths resources/genesis/bitcoin-regtest/`
+
+    - Config: `max_l2_blocks_per_commitment = 10`
+    - Start sequencer:
+      `./target/debug/citrea --dev --da-layer bitcoin --rollup-config-path resources/configs/bitcoin-regtest/sequencer_rollup_config.toml --sequencer resources/configs/bitcoin-regtest/sequencer_config.toml --genesis-paths resources/genesis/bitcoin-regtest/`
+
 3. Batch Prover
-- Config
-    `batch_prover_config.toml` => `proof_sampling_number = 0`
-    
-    `batch_prover_rollup_config.toml` =>
 
-```bash
-[da]
-# fill here
-node_url = "http://127.0.0.1:18443"
-# fill here
-node_username = "citrea"
-node_password = "citrea"
-```
+    - Config: `batch_prover_config.toml` => `proof_sampling_number = 0`
+    - `batch_prover_rollup_config.toml` =>
 
-- Apply those diff for skip first proof and start Batch Prover:
+    ```bash
+    [da]
+    # fill here
+    node_url = "http://127.0.0.1:18443"
+    # fill here
+    node_username = "citrea"
+    node_password = "citrea"
+    ```
 
-```bash
-diff --git a/crates/batch-prover/src/prover.rs b/crates/batch-prover/src/prover.rs
-index e81d761e..3c616110 100644
---- a/crates/batch-prover/src/prover.rs
-+++ b/crates/batch-prover/src/prover.rs
-@@ -33,6 +33,8 @@ use sov_rollup_interface::zk::batch_proof::output::BatchProofCircuitOutput;
- use sov_rollup_interface::zk::{Proof, ProofWithJob, ReceiptType, ZkvmHost};
- use sov_rollup_interface::Network;
- use sov_state::Witness;
-+use std::sync::atomic::{AtomicBool, Ordering};
-+use std::sync::OnceLock;
- use tokio::select;
- use tokio::sync::{broadcast, mpsc, oneshot};
- use tracing::level_filters::LevelFilter;
-@@ -676,6 +678,8 @@ where
-             .collect::<FuturesUnordered<_>>();
- 
-         let network = self.network;
-+        static FIRST_CALL: OnceLock<AtomicBool> = OnceLock::new();
-+        let first_call_flag = FIRST_CALL.get_or_init(|| AtomicBool::new(true));
- 
-         // start watching the proving jobs to finish in the background
-         tokio::spawn(async move {
-@@ -690,6 +694,14 @@ where
-                     .put_proof_by_job_id(job_id, proof.clone(), output.into())
-                     .expect("Should put proof to db");
- 
-+                if first_call_flag.swap(false, Ordering::SeqCst) {
-+                    println!("----------------------------------Skip at first_call");
-+                    ledger_db
-+                        .finalize_proving_job(job_id, [0u8; 32])
-+                        .expect("Should update proving job tx id");
-+                    continue;
-+                }
-+
-                 let tx_id = prover_service
-                     .submit_proof(proof, job_id)
-                     .await
+    - Apply those diff for skip first proof and start Batch Prover:
 
-```
+    ```bash
+    diff --git a/crates/batch-prover/src/prover.rs b/crates/batch-prover/src/prover.rs
+    index e81d761e..3c616110 100644
+    --- a/crates/batch-prover/src/prover.rs
+    +++ b/crates/batch-prover/src/prover.rs
+    @@ -33,6 +33,8 @@ use sov_rollup_interface::zk::batch_proof::output::BatchProofCircuitOutput;
+     use sov_rollup_interface::zk::{Proof, ProofWithJob, ReceiptType, ZkvmHost};
+     use sov_rollup_interface::Network;
+     use sov_state::Witness;
+    +use std::sync::atomic::{AtomicBool, Ordering};
+    +use std::sync::OnceLock;
+     use tokio::select;
+     use tokio::sync::{broadcast, mpsc, oneshot};
+     use tracing::level_filters::LevelFilter;
+    @@ -676,6 +678,8 @@ where
+                 .collect::<FuturesUnordered<_>>();
+     
+             let network = self.network;
+    +        static FIRST_CALL: OnceLock<AtomicBool> = OnceLock::new();
+    +        let first_call_flag = FIRST_CALL.get_or_init(|| AtomicBool::new(true));
+     
+             // start watching the proving jobs to finish in the background
+             tokio::spawn(async move {
+    @@ -690,6 +694,14 @@ where
+                         .put_proof_by_job_id(job_id, proof.clone(), output.into())
+                         .expect("Should put proof to db");
+     
+    +                if first_call_flag.swap(false, Ordering::SeqCst) {
+    +                    println!("----------------------------------Skip at first_call");
+    +                    ledger_db
+    +                        .finalize_proving_job(job_id, [0u8; 32])
+    +                        .expect("Should update proving job tx id");
+    +                    continue;
+    +                }
+    +
+                     let tx_id = prover_service
+                         .submit_proof(proof, job_id)
+                         .await
+    ```
 
     `PARALLEL_PROOF_LIMIT=1 ./target/debug/citrea --dev --da-layer bitcoin --rollup-config-path resources/configs/bitcoin-regtest/batch_prover_rollup_config.toml --batch-prover resources/configs/bitcoin-regtest/batch_prover_config.toml --genesis-paths resources/genesis/bitcoin-regtest`
+
 4. FullNode
-- Config
-`rollup_config.toml` =>
 
-```bash
-[da]
-# fill here
-node_url = "http://127.0.0.1:18443"
-# fill here
-node_username = "citrea"
-node_password = "citrea"
-```
+    - Config: `rollup_config.toml` =>
 
-- Start FullNode
-    `./target/debug/citrea --dev --da-layer bitcoin --rollup-config-path resources/configs/bitcoin-regtest/rollup_config.toml --genesis-paths resources/genesis/bitcoin-regtest/`
+    ```bash
+    [da]
+    # fill here
+    node_url = "http://127.0.0.1:18443"
+    # fill here
+    node_username = "citrea"
+    node_password = "citrea"
+    ```
+
+    - Start FullNode:
+      `./target/debug/citrea --dev --da-layer bitcoin --rollup-config-path resources/configs/bitcoin-regtest/rollup_config.toml --genesis-paths resources/genesis/bitcoin-regtest/`
 
 ### Log of full node after run
 - You can see the log:
