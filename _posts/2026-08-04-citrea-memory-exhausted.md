@@ -2,7 +2,7 @@
 title: "Malicious batch prover can cause permanent proof storage and memory exhaustion by provide an out of range proof"
 date: 2025-08-15 12:40:00 +0700
 categories: [Audits, Citrea]
-tags: [golang, memory exhausted,malcious actor, Citrea, cantina]
+tags: [rust, memory exhausted,malcious actor, Citrea, cantina]
 image: /assets/img/citrea.jpg
 ---
 
