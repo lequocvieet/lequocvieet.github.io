@@ -8,8 +8,6 @@ description: >-
 image: /assets/img/telcoin.png
 ---
 
-# State corruption and block hash mismatch at epoch boundry for Node Joining mid-epoch
-
 ## Metadata
 
 - **Severity:** High
@@ -83,13 +81,15 @@ To reproduce the issue in a test environment:
 1. Reduce the epoch duration to **200** blocks to allow faster testing because current epoch duration is **1 days**.
 
 2. Start 4 nodes and 1 observer node using the provided startup script.
+
 ```shell
 ./etc/local-testnet.sh --dev-funds 0x92D0A7EAf67BC88bA357Fb715BE09299C7347960 --start
 ```
 
 3. Midway through an epoch 0 to epoch 1, shut down and restart the node.
-   
-   - In this demo, I will stop the observer, validator is the same
+
+In this demo, I will stop the observer (validator is the same):
+
 ```shell
 #!/bin/bash
 # Config
@@ -110,7 +110,7 @@ pkill -f "$EXECUTABLE node --datadir $DATADIR" || echo "No running $OBSERVER fou
 echo "[*] Waiting $WAIT_SECONDS seconds (simulate mid-epoch downtime)..."
 sleep $WAIT_SECONDS
 
-# # Restart observer
+# Restart observer
 echo "[*] Restarting $OBSERVER..."
 $EXECUTABLE node --datadir "$DATADIR" \
     --observer \
@@ -121,8 +121,8 @@ $EXECUTABLE node --datadir "$DATADIR" \
     --http > "$LOG_FILE" &
 
 echo "[✓] $OBSERVER restarted."
+```
 
-```   
 ```shell
 ./start_stop_observer.sh
 ```
@@ -131,8 +131,9 @@ echo "[✓] $OBSERVER restarted."
 
 5. Observe that at the **epoch boundary**, the restarted node produces a block with a different hash due to divergent `apply_consensus_block_rewards()` results.
 
-- Apply this diff for more info:
-```shell
+Apply this diff for more info:
+
+```diff
 diff --git a/crates/tn-reth/src/evm/block.rs b/crates/tn-reth/src/evm/block.rs
 index 4ee3e570..07c92b17 100644
 --- a/crates/tn-reth/src/evm/block.rs
@@ -149,15 +150,18 @@ index 4ee3e570..07c92b17 100644
                  .map_err(|e| {
                      BlockExecutionError::Internal(InternalBlockExecutionError::Other(e.into()))
 ```
+
 6. At block `209` aka `boundary happens` restarted node produces block with hash: `0xf819c9002065f26580ded9ddac1f2f5a9fbaaf10d29fb3fda026864c36d10fbc`
+
 ```shell
 --------------------------applying consensus block rewards: {0x1111111111111111111111111111111111111111: 45, 0x2222222222222222222222222222222222222222: 34, 0x3333333333333333333333333333333333333333: 30, 0x4444444444444444444444444444444444444444: 36}
 2025-07-09T10:10:39.592779Z  INFO execute: tn::tasks: Epoch Task Manager: latest execution block shutdown successfully
 2025-07-09T10:10:39.786268Z  INFO engine: canonical head for epoch 0 round 422: 209 - 0xf819c9002065f26580ded9ddac1f2f5a9fbaaf10d29fb3fda026864c36d10fbc
 2025-07-09T10:10:39.786459Z  INFO execute: epoch-manager: epoch boundary success - clearing consensus db tables for next epoch
-
 ```
-- while other nodes produce this hash: `0xfb342daecef545b8938e59988ae64c5f9e5c04a082aa4d61ddb301d8d808ff64`
+
+While other nodes produce this hash: `0xfb342daecef545b8938e59988ae64c5f9e5c04a082aa4d61ddb301d8d808ff64`
+
 ```shell
 2025-07-09T10:10:39.583629Z  INFO primary::certifier: Certificate sender 12D3KooWPa3RK1p1GHRU9FCUSgREWCBaEQpzCJsFopn9BYbunMQs is shutting down!
 --------------------------applying consensus block rewards: {0x1111111111111111111111111111111111111111: 66, 0x2222222222222222222222222222222222222222: 45, 0x3333333333333333333333333333333333333333: 48, 0x4444444444444444444444444444444444444444: 50}
@@ -169,7 +173,8 @@ index 4ee3e570..07c92b17 100644
 2025-07-09T10:10:39.780666Z  INFO engine: canonical head for epoch 0 round 422: 209 - 0xfb342daecef545b8938e59988ae64c5f9e5c04a082aa4d61ddb301d8d808ff64
 ```
 
-- So the error `Error streaming consensus headers: consensus_output has a parent not in our chain` => The block is rejected by consensus due to mismatch with other nodes => and that node cannot work anymore, whether it is an observer node or a validator node.
+So the error `Error streaming consensus headers: consensus_output has a parent not in our chain` => The block is rejected by consensus due to mismatch with other nodes => and that node cannot work anymore, whether it is an observer node or a validator node.
+
 ```shell
 2025-07-09T10:10:39.836039Z  INFO execute: epoch-manager: EPOCH TASKS
  tasks=Epoch Task Manager

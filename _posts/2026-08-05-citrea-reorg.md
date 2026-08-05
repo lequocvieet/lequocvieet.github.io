@@ -8,8 +8,6 @@ description: >-
 image: /assets/img/citrea.jpg
 ---
 
-#  Logic Error in Reorg Detection in chain-state update triggers unnecessary reorg handling
-
 ## Metadata
 
 - **Severity:** Medium
@@ -66,6 +64,7 @@ Ex: Given the following `recent_blocks`:`[100(A), 99(B), 98(C), 97(D)]`
 ## Proof of Concept
 
 1. Apply this log for more info:
+
 ```rust
 if pos != i as usize {
     println!("----------------------------------reorg_detected");
@@ -73,14 +72,17 @@ if pos != i as usize {
     reorg_depth = i;
 }
 ```
+
 2. Start bitcoin regtest and sequencer with the `docs/run-dev.md`
+
 - Build bitcoin binary
 - Run bitcoin testnet on docker: `docker compose -f docker/docker-compose.regtest.yml up`
 - Setup sequencer wallet and config
 - `bitcoin-cli -regtest -rpcuser=citrea -rpcpassword=citrea createwallet citreatesting`
 - `bitcoin-cli -regtest -rpcuser=citrea -rpcpassword=citrea loadwallet citreatesting`
 - Changes config: [`sequencer_rollup_config.toml`](https://cantina.xyz/code/49b9e08d-4f8f-4103-b6e5-f5f43cf9faa1/resources/configs/bitcoin-regtest/sequencer_rollup_config.toml?lines=7,12)
-```
+
+```toml
 [da]
 # fill here
 node_url = "http://127.0.0.1:18443"
@@ -88,19 +90,28 @@ node_url = "http://127.0.0.1:18443"
 node_username = "citrea"
 node_password = "citrea"
 ```
+
 3. Mine some bitcoin blocks for the wallet generated above utxo:
+
 `bitcoin-cli -regtest -rpcuser=citrea -rpcpassword=citrea -generate 201`
+
 4. Edit config for faster check reorg, currently is 60s:
+
 ```rust
     pub const fn check_interval() -> u64 {
         1 //change from 60s to 1s
     }
 ```
+
 5. Start sequencer:
+
 `./target/debug/citrea --dev --da-layer bitcoin --rollup-config-path resources/configs/bitcoin-regtest/sequencer_rollup_config.toml --sequencer resources/configs/bitcoin-regtest/sequencer_config.toml --genesis-paths resources/genesis/bitcoin-regtest/`
+
 - Mine 1 block in bitcoin (1 is enough because always reorg detected):
 - `bitcoin-cli -regtest -rpcuser=citrea -rpcpassword=citrea -generate 1`
-- Sequencer's log:
+
+Sequencer's log:
+
 ```bash
 2025-08-13T15:11:57.316281Z DEBUG sov_modules_stf_blueprint::stf_blueprint: Beginning l2 block #1842 from sequencer: 0x036360e856310ce5d294e8be33fc807077dc56ac80d95d9cd4ddbd21325eff73f7
 2025-08-13T15:11:57.332514Z  INFO citrea_sequencer::runner: New block #1842, Tx count: #0
@@ -118,11 +129,13 @@ node_password = "citrea"
 2025-08-13T15:11:59.313062Z DEBUG citrea_sequencer::runner: Saving short header proofs to ledger db
 2025-08-13T15:11:59.314485Z DEBUG sov_modules_stf_blueprint::stf_blueprint: Beginning l2 block #1844 from sequencer: 0x036360e856310ce5d294e8be33fc807077dc56ac80d95d9cd4ddbd21325eff73f7
 2025-08-13T15:11:59.323723Z  INFO citrea_sequencer::runner: New block #1844, Tx count: #0
-
 ```
+
 ## Recommendation  
 Compare at same depth: Instead of checking position in old array, compare blocks at same depth
+
 ```rust
+
         if let Some(&(stored_hash, stored_height)) = chain_state.recent_blocks.get(i - 1) {
             if current_hash == stored_hash && height == stored_height {
                 // Same block at same depth - no reorg
