@@ -45,6 +45,7 @@ If a malicious batch prover provides a proof with a commitment index range that 
             return Ok(ProcessingResult::Pending);
         }
 ```
+
 - The impact is compounded in the [`process_pending_proofs()`](https://cantina.xyz/code/49b9e08d-4f8f-4103-b6e5-f5f43cf9faa1/crates/fullnode/src/da_block_handler.rs?lines=817,852) method, where `get_pending_proofs()` loads all pending proofs into memory. 
 - Since the malicious proof will always fail the same validation check=> it will never be successfully processed and will remain ***permanently*** stored in the ledger database.
 - This ***iteration*** becomes increasingly expensive, leading to ***DOS***
@@ -145,6 +146,7 @@ while true; do
     sleep $INTERVAL
 done
 ```
+
 2. Sequencer
 - Config
     `max_l2_blocks_per_commitment = 10`
@@ -155,6 +157,7 @@ done
     `batch_prover_config.toml` => `proof_sampling_number = 0`
     
     `batch_prover_rollup_config.toml` =>
+
 ```bash
 [da]
 # fill here
@@ -163,7 +166,9 @@ node_url = "http://127.0.0.1:18443"
 node_username = "citrea"
 node_password = "citrea"
 ```
+
 - Apply those diff for skip first proof and start Batch Prover:
+
 ```bash
 diff --git a/crates/batch-prover/src/prover.rs b/crates/batch-prover/src/prover.rs
 index e81d761e..3c616110 100644
@@ -204,10 +209,12 @@ index e81d761e..3c616110 100644
                      .await
 
 ```
+
     `PARALLEL_PROOF_LIMIT=1 ./target/debug/citrea --dev --da-layer bitcoin --rollup-config-path resources/configs/bitcoin-regtest/batch_prover_rollup_config.toml --batch-prover resources/configs/bitcoin-regtest/batch_prover_config.toml --genesis-paths resources/genesis/bitcoin-regtest`
 4. FullNode
 - Config
 `rollup_config.toml` =>
+
 ```bash
 [da]
 # fill here
@@ -216,6 +223,7 @@ node_url = "http://127.0.0.1:18443"
 node_username = "citrea"
 node_password = "citrea"
 ```
+
 - Start FullNode
     `./target/debug/citrea --dev --da-layer bitcoin --rollup-config-path resources/configs/bitcoin-regtest/rollup_config.toml --genesis-paths resources/genesis/bitcoin-regtest/`
 
@@ -266,6 +274,7 @@ node_password = "citrea"
 --------------------------sequencer_commitment_index_range (28, 28)
 --------------------------Current Proven height 0
 ```
+
 ## Recommendation  
 1. **Add cleanup logic for stale pending proofs**  
    - Introduce a maximum retention period or block height for pending proofs.  
@@ -274,8 +283,6 @@ node_password = "citrea"
 2. **Resource usage safeguards**  
    - Implement memory and disk quotas for `pending_proofs`.  
    - Reject new proofs if storage limits are reached to avoid DoS from unbounded growth.
-
-
 
 ## Comments
 
@@ -323,7 +330,6 @@ Thanks for your judging **tqkve**
   The likelihood is not only based on the fact that the batch prover is semi-trusted, but also take into account the incentive and required time to actually cause the OOM (storage exhaustion is even more difficult). These make it likelihood Low.
   
   Regarding the duplicate, I think you're correct that it's not a valid dup of this finding.
-
 
 ---
 

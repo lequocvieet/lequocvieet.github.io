@@ -16,7 +16,6 @@ image: /assets/img/mezod.jpg
 - **Impact:** Medium
 - **Reward:** 1086.10 $
 
-
 ## Summary
 
 The `latestBlock` variable is accessed and modified concurrently without synchronization, leading to a potential data race.
@@ -87,6 +86,7 @@ Since the data race exists on a highly active variable updated as new blocks are
 I write a unit test in `server/indexer_service_test.go`, no need to care about the un-implemented below comment  `// --- Stub all unused methods ---method` 
 
 I mocked the full interface function to prevent unimplemented errors.
+
 ```go
 package server_test
 
@@ -342,6 +342,7 @@ func (m *MockClient) BroadcastEvidence(ctx context.Context, evidence tmtypes.Evi
 }
 
 ```
+
 After running the test:
 
 ```go
@@ -413,6 +414,7 @@ write at :
 		}
 	}()
 ```
+
 and read at: 
 
 ```go
@@ -420,13 +422,13 @@ and read at:
 *****   lastBlock = latestBlock
 	} 
 ```
+
 ## Recommendation
 
 Synchronize access to `latestBlock` to eliminate the data race. There are two common approaches:
 
 1. **Use a `sync.Mutex`** to guard all reads and writes to `latestBlock`.
 2. **Use `sync/atomic` package** for atomic reads and writes if performance is critical and `latestBlock` is an integer.
-
 
 ## Comments
 

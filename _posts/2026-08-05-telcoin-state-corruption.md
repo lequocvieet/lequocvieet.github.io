@@ -19,7 +19,6 @@ image: /assets/img/telcoin.png
 - **Last updated:** August 22, 2025 at 1:08 AM
 - **Reward:** 853.16 $
 
-
 ## Summary
 Nodes that join the network **mid-epoch** incorrectly calculate gas usage and consensus rewards due to a logic bug in `catchup_accumulator()`. This causes them to produce a different block at the epoch boundary, resulting in a consensus failure and block hash divergence across nodes => That node stops working normally
 ## Description  
@@ -30,6 +29,7 @@ Because of this, [the call](https://cantina.xyz/code/26d5255b-6f68-46cf-be55-81d
 ```rust
 let blocks = reth_env.blocks_for_range(epoch_state.epoch_start..=block.number)?;
 ```
+
 returns an empty block list `(blocks.len() == 0)`. As a result, the [logic inside the loop to accumulate gas and leader data](https://cantina.xyz/code/26d5255b-6f68-46cf-be55-81dd565d9d16/telcoin-network/crates/node/src/manager.rs?lines=114,134) is never executed:
 
 ```rust
@@ -69,6 +69,7 @@ spawn_execution_task
 
     }
 ```
+
 ## Impact Explanation  
 **High**. A node that restarts or joins **mid-epoch** ends up with a corrupted `gas_accumulator` state, leading to incorrect reward computations and a divergent block hash at the epoch boundary. This results in **consensus rejection** and that node cannot do anything =>**dead**
 
@@ -195,7 +196,6 @@ Task: batch-builder (critical)
 2025-07-09T10:10:39.836211Z  INFO state-sync: Starting state sync: track latest consensus header from peers
 2025-07-09T10:10:40.895712Z ERROR state-sync: Error streaming consensus headers: consensus_output has a parent not in our chain, missing NumHash { number: 209, hash: 0xfb342daecef545b8938e59988ae64c5f9e5c04a082aa4d61ddb301d8d808ff64 } recents: Ref { inner: RwLockReadGuard(PhantomData<std::sync::poison::rwlock::RwLockReadGuard<tn_primary::recent_blocks::RecentBlocks>>, RecentBlocks { num_blocks: 50, blocks: [SealedHeader { hash: OnceLock(0x0bb2808b9271b58c4bb353e2f1df88ac2ea2f6b5c68c19b56c66ab6d5372bb2b), header: Header { parent_hash: 0x571eb8cd38243a76d8ffff2cd918b270d61ec511b26fef53aa7
 ```
-
 
 ## Recommendation  
 Convert `epoch_state.epoch_start` from timestamp to block number using the existing chain state. This ensures the block range in `blocks_for_range()` is valid and consistent with running nodes.

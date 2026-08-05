@@ -25,6 +25,7 @@ The [`check_chain_state()`](https://cantina.xyz/code/49b9e08d-4f8f-4103-b6e5-f5f
 `if new_tip != chain_state.current_tip {`
 2. Goes backwards from the new tip, collecting block hashes for the last `finality_depth` blocks.
 Go from `i=1` and start with `current_hash` of new block height -1
+
 ```rust
          for i in 1..=self.finality_depth {
                 //@audit Goes backwards from the new tip, collecting block hashes for the last finality_depth blocks.
@@ -32,7 +33,9 @@ Go from `i=1` and start with `current_hash` of new block height -1
                 current_hash = self.client.get_block_hash(height).await?;
                 new_blocks.push((current_hash, height));
 ```
+
 3. It checks if any of the new blocks match blocks from the previously stored chain. If a match is found but at a different position, it means the chain reorganized.
+
 ```rust
         if let Some(pos) = chain_state
                     .recent_blocks
@@ -45,6 +48,7 @@ Go from `i=1` and start with `current_hash` of new block height -1
                     }
                     break;
 ```
+
 4. The things here: They compare `pos`(the position found the `hash == current_hash`) so `pos` is an index in the old `recent_blocks` array start with 0 while `i`(the depth from the current new tip start with 1) => These aren't directly comparable 
 
 Ex: Given the following `recent_blocks`:`[100(A), 99(B), 98(C), 97(D)]`
