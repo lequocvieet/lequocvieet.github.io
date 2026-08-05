@@ -1,7 +1,7 @@
 ---
 title: "State corruption and block hash mismatch at epoch boundry for Node Joining mid-epoch"
 date: 2025-07-09 06:20:00 +0700
-categories: [Audits, Citrea]
+categories: [Audits, Telcoin]
 tags: [rust,telcoin,state corruption cantina]
 description: >-
   State corruption and block hash mismatch at epoch boundry for Node Joining mid-epoch of Telcoin network — a confirmed High finding.
