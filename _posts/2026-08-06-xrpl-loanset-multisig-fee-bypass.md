@@ -105,6 +105,7 @@ So to demonstrate this bug, a unit test is used instead of directly multisigning
 
 ### Apply this diff for unit test
 
+{% raw %}
 ```diff
 diff --git a/src/test/app/Loan_test.cpp b/src/test/app/Loan_test.cpp
 index c7c601de3d..eb5967200f 100644
@@ -200,6 +201,7 @@ index c7c601de3d..eb5967200f 100644
          testRPC();
          testBasicMath();
 ```
+{% endraw %}
 
 ### Run test after rebuild
 
