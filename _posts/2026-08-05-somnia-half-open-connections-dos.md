@@ -5,7 +5,7 @@ categories: [Audits, Somnia]
 tags: [cpp, somnia, dos, handshake, connections, hackenproof]
 description: >-
   Inverted handshake timeout check lets half-open peer connections linger forever and exhaust slots — a disclosed Low finding on Somnia (SOMNIAAC-66).
-image: /assets/img/somnia.png
+image: /assets/img/somnia.jpg
 ---
 
 > You can also view the full bug on the HackenProof disclosed report: [https://hackenproof.com/reports/SOMNIAAC-66](https://hackenproof.com/reports/SOMNIAAC-66)

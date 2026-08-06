@@ -5,7 +5,7 @@ categories: [Audits, Somnia]
 tags: [cpp, somnia, dos, memory leak, hackenproof]
 description: >-
   Non-existent storage keys stuck forever in inflight_protocol_requests — a confirmed Medium finding on Somnia (SOMNIAAC-180).
-image: /assets/img/somnia.png
+image: /assets/img/somnia.jpg
 ---
 
 > You can also view the full bug on the HackenProof disclosed report: [https://hackenproof.com/reports/SOMNIAAC-180](https://hackenproof.com/reports/SOMNIAAC-180)

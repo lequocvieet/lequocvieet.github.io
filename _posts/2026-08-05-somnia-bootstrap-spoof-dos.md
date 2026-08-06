@@ -5,7 +5,7 @@ categories: [Audits, Somnia]
 tags: [cpp, somnia, dos, bootstrap, spoofing, hackenproof]
 description: >-
   Spoofed BootstrapStatusMessage can force median executed height to 0 and halt node liveness — a confirmed Medium finding on Somnia (SOMNIAAC-177).
-image: /assets/img/somnia.png
+image: /assets/img/somnia.jpg
 ---
 
 ## Metadata
